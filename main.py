@@ -4,12 +4,12 @@ This file contains the necessary components to mass-unblock / mass-unmute users.
 
 import os
 import json
+import hashlib
 from glob import glob
 
 import requests
 import praw
 import typer
-import hashlib
 
 
 APP = typer.Typer()
@@ -49,6 +49,13 @@ def _existing_checksums(base_path):
     return [fn.split('_')[0].replace(f'{base_path}\\', '') for fn in raw]
 
 
+def _setup(name):
+    reddit = _make_api(_make_config()).redditor(name)
+    base_path = f'./{name.replace("_", "-")}'
+
+    return reddit, base_path
+
+
 def _process_submission(submission, base_path):
     if 'jpg' in submission.url:
         if not os.path.exists(base_path):
@@ -70,11 +77,8 @@ def user(name: str, limit: int = typer.Option(None)):
     '''
     Download pictures from the specified user.
     '''
-    api = _make_api(_make_config())
-    red = api.redditor(name)
-    base_path = f'./{name.replace("_", "-")}'
-
-    raw_submissions = red.submissions.new(limit=limit)
+    redditor, base_path = _setup(name)
+    raw_submissions = redditor.submissions.new(limit=limit)
 
     with typer.progressbar(raw_submissions, length=limit) as submissions:
         for submission in submissions:
@@ -90,15 +94,14 @@ def subreddit(
     '''
     Download pictures from the specified subreddit.
     '''
-    api = _make_api(_make_config())
-    red = api.subreddit(name)
+    sub_reddit, base_path = _setup(name)
     base_path = f'./{name.replace("_", "-")}'
 
-    raw_submissions = red.search(
+    raw_submissions = sub_reddit.search(
         search,
         sort='new',
         limit=limit
-    ) if search else red.new(
+    ) if search else sub_reddit.new(
         limit=limit
     )
     with typer.progressbar(raw_submissions, length=limit) as submissions:

@@ -131,4 +131,7 @@ dmypy.json
 # VS Code folder
 .vscode
 
+# Images
+*.jpg
+
 config.json
