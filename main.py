@@ -85,17 +85,14 @@ def user(name: str, limit: int = typer.Option(None)):
 def subreddit(
         name: str,
         search: str = typer.Option(None),
-        limit: int = typer.Option(500),
-        superfolder: bool = typer.Option(False),
-        subfolder_by_author: bool = typer.Option(False),
-        superfolder_by_author: bool = typer.Option(False),
+        limit: int = typer.Option(500)
 ):
     '''
     Download pictures from the specified subreddit.
     '''
     api = _make_api(_make_config())
     red = api.subreddit(name)
-    subreddit_path = f'./{name.replace("_", "-")}'
+    base_path = f'./{name.replace("_", "-")}'
 
     raw_submissions = red.search(
         search,
@@ -106,16 +103,7 @@ def subreddit(
     )
     with typer.progressbar(raw_submissions, length=limit) as submissions:
         for submission in submissions:
-            if subfolder_by_author:
-                output_path = f'./{name.replace("_", "-")}/{submission.author}'
-            elif superfolder_by_author:
-                output_path = f'./{submission.author}'
-            elif superfolder:
-                output_path = f'./'
-            else:
-                output_path = subreddit_path
-
-            _process_submission(submission, output_path)
+            _process_submission(submission, base_path)
 
 
 if __name__ == '__main__':
