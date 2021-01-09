@@ -74,8 +74,8 @@ def redditor(name: str, limit: int = typer.Option(None)):
     '''
     Download pictures from the specified user.
     '''
-    redditor = _make_api(_make_config()).redditor(name)
-    raw_submissions = redditor.submissions.new(limit=limit)
+    redd = _make_api(_make_config()).redditor(name)
+    raw_submissions = redd.submissions.new(limit=limit)
 
     with typer.progressbar(raw_submissions, length=limit) as submissions:
         for submission in submissions:
@@ -91,13 +91,13 @@ def subreddit(
     '''
     Download pictures from the specified subreddit.
     '''
-    sub_reddit = _make_api(_make_config()).subreddit(name)
+    sub = _make_api(_make_config()).subreddit(name)
 
-    raw_submissions = sub_reddit.search(
+    raw_submissions = sub.search(
         search,
         sort='new',
         limit=limit
-    ) if search else sub_reddit.new(
+    ) if search else sub.new(
         limit=limit
     )
     with typer.progressbar(raw_submissions, length=limit) as submissions:
