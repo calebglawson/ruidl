@@ -31,7 +31,7 @@ def _make_api(config):
     api = praw.Reddit(
         client_id=config.get('client_id'),
         client_secret=config.get('client_secret'),
-        user_agent='script:com.example.ruidl:v1 (by u/)',
+        user_agent='script:com.example.ruidl:v1 (by u/anon)',
         username=config.get('username'),
         password=config.get('password')
     )
