@@ -13,7 +13,7 @@ Reddit User Image Downloader
 ```
 3. Download images from a user.
 ```
-python main.py user ImAnExampleUser --limit 50
+python main.py redditor ImAnExampleUser --limit 50
 ```
 Download images from a subreddit.
 ```

@@ -1,5 +1,5 @@
 '''
-This file contains the necessary components to mass-unblock / mass-unmute users.
+This file contains the necessary components to download images from a subbreddit or redditor.
 '''
 
 import os
@@ -49,11 +49,8 @@ def _existing_checksums(base_path):
     return [fn.split('_')[0].replace(f'{base_path}\\', '') for fn in raw]
 
 
-def _setup(name):
-    reddit = _make_api(_make_config()).redditor(name)
-    base_path = f'./{name.replace("_", "-")}'
-
-    return reddit, base_path
+def _base_path(name):
+    return f'./{name.replace("_", "-")}'
 
 
 def _process_submission(submission, base_path):
@@ -73,16 +70,16 @@ def _process_submission(submission, base_path):
 
 
 @APP.command()
-def user(name: str, limit: int = typer.Option(None)):
+def redditor(name: str, limit: int = typer.Option(None)):
     '''
     Download pictures from the specified user.
     '''
-    redditor, base_path = _setup(name)
+    redditor = _make_api(_make_config()).redditor(name)
     raw_submissions = redditor.submissions.new(limit=limit)
 
     with typer.progressbar(raw_submissions, length=limit) as submissions:
         for submission in submissions:
-            _process_submission(submission, base_path)
+            _process_submission(submission, _base_path(name))
 
 
 @APP.command()
@@ -94,8 +91,7 @@ def subreddit(
     '''
     Download pictures from the specified subreddit.
     '''
-    sub_reddit, base_path = _setup(name)
-    base_path = f'./{name.replace("_", "-")}'
+    sub_reddit = _make_api(_make_config()).subreddit(name)
 
     raw_submissions = sub_reddit.search(
         search,
@@ -106,7 +102,7 @@ def subreddit(
     )
     with typer.progressbar(raw_submissions, length=limit) as submissions:
         for submission in submissions:
-            _process_submission(submission, base_path)
+            _process_submission(submission, _base_path(name))
 
 
 if __name__ == '__main__':
