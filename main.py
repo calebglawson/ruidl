@@ -5,12 +5,14 @@ This file contains the necessary components to download images from a subbreddit
 import os
 import json
 import hashlib
+import time
 from glob import glob
+from multiprocessing import cpu_count
+from multiprocessing.pool import ThreadPool
 
 import requests
 import praw
 import typer
-
 
 APP = typer.Typer()
 
@@ -39,47 +41,95 @@ def _make_api(config):
     return api
 
 
-def _existing_orig_filenames(base_path):
-    raw = glob(f'{base_path}/*.jpg')
-    return [fn.split('_')[1] for fn in raw]
+class Ruidl:
+    '''
+    Reddit media downloader.
+    '''
 
+    def __init__(self, name):
+        self._name = name
 
-def _existing_checksums(base_path):
-    raw = glob(f'{base_path}/*.jpg')
-    return [fn.split('_')[0].replace(f'{base_path}\\', '') for fn in raw]
+        self._config = _make_config()
+        self._api = _make_api(self._config)
+        self._base_path = f'{self._config.get("download_dir", "./")}{self._name.replace("_", "-")}'
 
+        if not os.path.exists(self._base_path):
+            os.makedirs(self._base_path)
 
-def _base_path(name):
-    return f'./{name.replace("_", "-")}'
+        self._filetypes = ['.jpg', '.png', '.gif', '.webp', '.mp4']
+        existing_files = []
+        for file_type in self._filetypes:
+            existing_files.extend(glob(f'{self._base_path}/*{file_type}'))
+        self._filenames = {fn.split('_')[1] for fn in existing_files}
+        self._checksums = {
+            fn.split('_')[0].replace(f'{self._base_path}\\', '') for fn in existing_files
+        }
+        del existing_files
 
+    def _process_submission(self, submission):
+        if any([ext in submission.url for ext in self._filetypes]):
 
-def _process_submission(submission, base_path):
-    if 'jpg' in submission.url:
-        if not os.path.exists(base_path):
-            os.makedirs(base_path)
+            file_name = f'{self._base_path}/{submission.url.split("/")[-1]}'
 
-        file_name = f'{base_path}/{submission.url.split("/")[-1]}'
-        if file_name not in _existing_orig_filenames(base_path):
-            request = requests.get(submission.url)
-            file_hash = hashlib.md5(request.content).hexdigest()
-            if file_hash not in _existing_checksums(base_path):
-                new_file_name = f'{base_path}/{file_hash}_{file_name.split("/")[-1]}'
+            if file_name not in self._filenames:
+                request = requests.get(submission.url)
+                file_hash = hashlib.md5(request.content).hexdigest()
+                if file_hash not in self._checksums:
+                    self._checksums.add(file_hash)
+                    self._filenames.add(file_name.split("/")[-1])
+                    new_file_name = f'{self._base_path}/{file_hash}_{file_name.split("/")[-1]}'
+                    with open(new_file_name, 'wb') as new:
+                        new.write(request.content)
 
-                with open(new_file_name, 'wb') as new:
-                    new.write(request.content)
+    def _handle_submissions(self, submissions):
+        typer.echo(
+            f'Processing submissions with {cpu_count()} worker thread(s).'
+        )
+
+        thread_pool = ThreadPool(cpu_count())
+
+        start_file_num = len(os.listdir(self._base_path))
+        start = time.time()
+        thread_pool.map_async(self._process_submission, submissions)
+        thread_pool.close()
+        thread_pool.join()
+        end = time.time()
+        end_file_num = len(os.listdir(self._base_path))
+
+        typer.echo(
+            f'Downloaded {end_file_num - start_file_num} files within {int(end - start)} seconds.'
+        )
+
+    def redditor(self, limit):
+        '''
+        Download content from a redditor
+        '''
+        redd = self._api.redditor(self._name)
+        submissions = redd.submissions.new(limit=limit)
+
+        self._handle_submissions(submissions)
+
+    def subreddit(self, search, limit):
+        '''
+        Download content from a subreddit.
+        '''
+        sub = self._api.subreddit(self._name)
+        submissions = sub.search(
+            search,
+            sort='new',
+            limit=limit
+        ) if search else sub.new(
+            limit=limit
+        )
+        self._handle_submissions(submissions)
 
 
 @APP.command()
 def redditor(name: str, limit: int = typer.Option(None)):
     '''
-    Download pictures from the specified user.
+    Download from the specified user.
     '''
-    redd = _make_api(_make_config()).redditor(name)
-    raw_submissions = redd.submissions.new(limit=limit)
-
-    with typer.progressbar(raw_submissions, length=limit) as submissions:
-        for submission in submissions:
-            _process_submission(submission, _base_path(name))
+    Ruidl(name).redditor(limit)
 
 
 @APP.command()
@@ -89,20 +139,9 @@ def subreddit(
         limit: int = typer.Option(500)
 ):
     '''
-    Download pictures from the specified subreddit.
+    Download from the specified subreddit.
     '''
-    sub = _make_api(_make_config()).subreddit(name)
-
-    raw_submissions = sub.search(
-        search,
-        sort='new',
-        limit=limit
-    ) if search else sub.new(
-        limit=limit
-    )
-    with typer.progressbar(raw_submissions, length=limit) as submissions:
-        for submission in submissions:
-            _process_submission(submission, _base_path(name))
+    Ruidl(name).subreddit(search, limit)
 
 
 if __name__ == '__main__':
