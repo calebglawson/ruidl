@@ -13,6 +13,7 @@ from multiprocessing.pool import ThreadPool
 import requests
 import praw
 import typer
+import wordninja
 
 APP = typer.Typer()
 
@@ -66,20 +67,48 @@ class Ruidl:
         }
         del existing_files
 
+        wordninja.DEFAULT_LANGUAGE_MODEL = wordninja.LanguageModel(
+            '.\\wordninja_words.txt.gz'
+        )
+
     def _process_submission(self, submission):
-        if any([ext in submission.url for ext in self._filetypes]):
+        if (
+                self._config.get('wordninja_trigger') and
+                self._config.get('wordninja_trigger') in submission.url
+        ):
+            words = wordninja.split(submission.url.split("/")[-1])
 
-            file_name = f'{self._base_path}/{submission.url.split("/")[-1]}'
+            capitalized_words = ''
+            for idx, word in enumerate(words):
+                if idx < 3:
+                    capitalized_words = f'{capitalized_words}{word[0].upper()}{word[1:]}'
+                else:
+                    capitalized_words = f'{capitalized_words}{word}'
 
-            if file_name not in self._filenames:
-                request = requests.get(submission.url)
-                file_hash = hashlib.md5(request.content).hexdigest()
-                if file_hash not in self._checksums:
-                    self._checksums.add(file_hash)
-                    self._filenames.add(file_name.split("/")[-1])
-                    new_file_name = f'{self._base_path}/{file_hash}_{file_name.split("/")[-1]}'
-                    with open(new_file_name, 'wb') as new:
-                        new.write(request.content)
+            submission.url = (
+                f'{self._config.get("wordninja_download_url","")}'
+                f'{capitalized_words}.mp4'
+            )
+        elif any([ext in submission.url for ext in self._filetypes]):
+            pass
+        else:
+            return
+
+        file_name = f'{self._base_path}/{submission.url.split("/")[-1]}'
+
+        if file_name in self._filenames:
+            return
+
+        request = requests.get(submission.url)
+        file_hash = hashlib.md5(request.content).hexdigest()
+        if file_hash in self._checksums:
+            return
+
+        self._checksums.add(file_hash)
+        self._filenames.add(file_name.split("/")[-1])
+        new_file_name = f'{self._base_path}/{file_hash}_{file_name.split("/")[-1]}'
+        with open(new_file_name, 'wb') as new:
+            new.write(request.content)
 
     def _handle_submissions(self, submissions):
         typer.echo(
