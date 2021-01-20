@@ -47,7 +47,7 @@ class Ruidl:
     Reddit media downloader.
     '''
 
-    def __init__(self, name):
+    def __init__(self, name, wordninja_only):
         self._name = name
 
         self._config = _make_config()
@@ -57,7 +57,13 @@ class Ruidl:
         if not os.path.exists(self._base_path):
             os.makedirs(self._base_path)
 
-        self._filetypes = ['.jpg', '.png', '.gif', '.webp', '.mp4']
+        self._filetypes = [
+            '.jpg',
+            '.png',
+            '.gif',
+            '.webp',
+            '.mp4'
+        ] if not wordninja_only else []
         existing_files = []
         for file_type in self._filetypes:
             existing_files.extend(glob(f'{self._base_path}/*{file_type}'))
@@ -129,6 +135,9 @@ class Ruidl:
             f'Downloaded {end_file_num - start_file_num} files within {int(end - start)} seconds.'
         )
 
+        if end_file_num == 0:
+            os.rmdir(self._base_path)
+
     def redditor(self, limit):
         '''
         Download content from a redditor
@@ -154,23 +163,28 @@ class Ruidl:
 
 
 @APP.command()
-def redditor(name: str, limit: int = typer.Option(None)):
+def redditor(
+        name: str,
+        limit: int = typer.Option(None),
+        wordninja_only: bool = typer.Option(False)
+):
     '''
     Download from the specified user.
     '''
-    Ruidl(name).redditor(limit)
+    Ruidl(name, wordninja_only).redditor(limit)
 
 
 @APP.command()
 def subreddit(
         name: str,
         search: str = typer.Option(None),
-        limit: int = typer.Option(500)
+        limit: int = typer.Option(None),
+        wordninja_only: bool = typer.Option(False)
 ):
     '''
     Download from the specified subreddit.
     '''
-    Ruidl(name).subreddit(search, limit)
+    Ruidl(name, wordninja_only).subreddit(search, limit)
 
 
 if __name__ == '__main__':
