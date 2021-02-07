@@ -6,6 +6,7 @@ import os
 import json
 import hashlib
 import time
+import sys
 from glob import glob
 from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
@@ -113,6 +114,10 @@ class Ruidl:
         self._checksums.add(file_hash)
         self._filenames.add(file_name.split("/")[-1])
         new_file_name = f'{self._base_path}/{file_hash}_{file_name.split("/")[-1]}'
+
+        if sys.getsizeof(request.content) < self._config.get('file_size_threshold', 10000):
+            return
+
         with open(new_file_name, 'wb') as new:
             new.write(request.content)
 
