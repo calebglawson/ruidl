@@ -1,3 +1,4 @@
+iptcinfo3
 requests
 praw
 typer

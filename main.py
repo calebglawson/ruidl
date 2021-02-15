@@ -11,6 +11,7 @@ from glob import glob
 from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
 
+from iptcinfo3 import IPTCInfo
 import requests
 import praw
 import typer
@@ -62,7 +63,6 @@ class Ruidl:
             '.jpg',
             '.png',
             '.gif',
-            '.webp',
             '.mp4'
         ] if not wordninja_only else []
         existing_files = []
@@ -120,6 +120,13 @@ class Ruidl:
 
         with open(new_file_name, 'wb') as new:
             new.write(request.content)
+
+        if self._config.get('image_tags_enabled') and 'mp4' not in new_file_name:
+            info = IPTCInfo(new_file_name, force=True)
+            info['Keywords'].append(str(submission.author))
+            info['Keywords'].append(str(submission.subreddit))
+            info.save()
+            os.remove(f'{new_file_name}~')
 
     def _handle_submissions(self, submissions):
         typer.echo(
