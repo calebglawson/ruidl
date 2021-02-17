@@ -5,13 +5,13 @@ This file contains the necessary components to download images from a subbreddit
 import os
 import json
 import hashlib
-import time
 import sys
+import time
 from glob import glob
 from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
 
-from iptcinfo3 import IPTCInfo
+import exif
 import requests
 import praw
 import typer
@@ -121,12 +121,16 @@ class Ruidl:
         with open(new_file_name, 'wb') as new:
             new.write(request.content)
 
-        if self._config.get('image_tags_enabled') and 'mp4' not in new_file_name:
-            info = IPTCInfo(new_file_name, force=True)
-            info['Keywords'].append(str(submission.author))
-            info['Keywords'].append(str(submission.subreddit))
-            info.save()
-            os.remove(f'{new_file_name}~')
+        if 'mp4' in new_file_name or 'gif' in new_file_name:
+            return
+
+        with open(new_file_name, 'rb') as new:
+            image = exif.Image(new.read())
+            image.artist = str(submission.author)
+            image.image_description = str(submission.subreddit)
+
+        with open(new_file_name, 'wb') as new:
+            new.write(image.get_file())
 
     def _handle_submissions(self, submissions):
         typer.echo(
