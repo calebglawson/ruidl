@@ -5,8 +5,10 @@ This file contains the necessary components to download images from a subbreddit
 import os
 import json
 import hashlib
+
 import sys
 import time
+import traceback
 from glob import glob
 from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
@@ -79,58 +81,69 @@ class Ruidl:
         )
 
     def _process_submission(self, submission):
-        if (
-                self._config.get('wordninja_trigger') and
-                self._config.get('wordninja_trigger') in submission.url
-        ):
-            words = wordninja.split(submission.url.split("/")[-1])
+        try:
+            if (
+                    self._config.get('wordninja_trigger') and
+                    self._config.get('wordninja_trigger') in submission.url
+            ):
+                words = wordninja.split(submission.url.split("/")[-1])
 
-            capitalized_words = ''
-            for idx, word in enumerate(words):
-                if idx < 3:
-                    capitalized_words = f'{capitalized_words}{word[0].upper()}{word[1:]}'
-                else:
-                    capitalized_words = f'{capitalized_words}{word}'
+                capitalized_words = ''
+                for idx, word in enumerate(words):
+                    if idx < 3:
+                        capitalized_words = f'{capitalized_words}{word[0].upper()}{word[1:]}'
+                    else:
+                        capitalized_words = f'{capitalized_words}{word}'
 
-            submission.url = (
-                f'{self._config.get("wordninja_download_url","")}'
-                f'{capitalized_words}.mp4'
-            )
-        elif any([ext in submission.url for ext in self._filetypes]):
-            pass
-        else:
-            return
+                submission.url = (
+                    f'{self._config.get("wordninja_download_url","")}'
+                    f'{capitalized_words}.mp4'
+                )
+            elif any([ext in submission.url for ext in self._filetypes]):
+                pass
+            else:
+                if self._config.get('verbose'):
+                    typer.echo(
+                        f'No matches triggered for this URL: {submission.url}'
+                    )
+                return
 
-        file_name = f'{self._base_path}/{submission.url.split("/")[-1]}'
+            file_name = f'{self._base_path}/{submission.url.split("/")[-1]}'
 
-        if file_name in self._filenames:
-            return
+            if file_name in self._filenames:
+                return
 
-        request = requests.get(submission.url)
-        file_hash = hashlib.md5(request.content).hexdigest()
-        if file_hash in self._checksums:
-            return
+            request = requests.get(submission.url)
+            file_hash = hashlib.md5(request.content).hexdigest()
+            if file_hash in self._checksums:
+                return
 
-        self._checksums.add(file_hash)
-        self._filenames.add(file_name.split("/")[-1])
-        new_file_name = f'{self._base_path}/{file_hash}_{file_name.split("/")[-1]}'
+            self._checksums.add(file_hash)
+            self._filenames.add(file_name.split("/")[-1])
+            new_file_name = f'{self._base_path}/{file_hash}_{file_name.split("/")[-1]}'
 
-        if sys.getsizeof(request.content) < self._config.get('file_size_threshold', 10000):
-            return
+            if sys.getsizeof(request.content) < self._config.get('file_size_threshold', 10000):
+                return
 
-        with open(new_file_name, 'wb') as new:
-            new.write(request.content)
+            with open(new_file_name, 'wb') as new:
+                new.write(request.content)
 
-        if 'mp4' in new_file_name or 'gif' in new_file_name:
-            return
+            if 'mp4' in new_file_name or 'gif' in new_file_name:
+                return
 
-        with open(new_file_name, 'rb') as new:
-            image = exif.Image(new.read())
-            image.artist = str(submission.author)
-            image.image_description = str(submission.subreddit)
+            with open(new_file_name, 'rb') as new:
+                image = exif.Image(new.read())
+                image.artist = str(submission.author)
+                image.image_description = str(submission.subreddit)
 
-        with open(new_file_name, 'wb') as new:
-            new.write(image.get_file())
+            with open(new_file_name, 'wb') as new:
+                new.write(image.get_file())
+
+        except Exception as exception:  # pylint: disable=broad-except
+            # Needed so that any exceptions in threads are loud and clear.
+            if self._config.get('verbose'):
+                typer.echo(exception)
+                typer.echo(traceback.format_exc())
 
     def _handle_submissions(self, submissions):
         typer.echo(
