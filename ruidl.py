@@ -193,9 +193,7 @@ class Ruidl:
         else:
             if self._config.get('verbose'):
                 typer.echo(
-                    f'No match triggered for this URL: {submission.url}'
-                )
-                typer.echo(
+                    f'No match triggered for this URL: {submission.url} '
                     f'Permalink: https://reddit.com{submission.permalink}'
                 )
 
