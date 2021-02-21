@@ -195,6 +195,9 @@ class Ruidl:
                 typer.echo(
                     f'No match triggered for this URL: {submission.url}'
                 )
+                typer.echo(
+                    f'Permalink: https://reddit.com{submission.permalink}'
+                )
 
         return file_urls
 
