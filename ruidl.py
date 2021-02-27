@@ -214,7 +214,7 @@ class Ruidl:
 
     def _handle_submissions(self, submissions):
         typer.echo(
-            f'Processing submissions with {cpu_count()} worker thread(s).'
+            f'Processing {len(submissions)} submissions with {cpu_count()} worker thread(s).'
         )
 
         thread_pool = ThreadPool(cpu_count())
@@ -239,7 +239,10 @@ class Ruidl:
         Download content from a redditor
         '''
         redd = self._api.redditor(self._name)
-        submissions = redd.submissions.new(limit=limit)
+        typer.echo('Retrieving submission list.')
+        submissions = [
+            submission for submission in redd.submissions.new(limit=limit)
+        ]
 
         self._handle_submissions(submissions)
 
@@ -248,13 +251,19 @@ class Ruidl:
         Download content from a subreddit.
         '''
         sub = self._api.subreddit(self._name)
-        submissions = sub.search(
-            search,
-            sort='new',
-            limit=limit
-        ) if search else sub.new(
-            limit=limit
-        )
+        typer.echo('Retrieving submission list.')
+        submissions = [
+            submission for submission in
+            (
+                sub.search(
+                    search,
+                    sort='new',
+                    limit=limit
+                ) if search else sub.new(
+                    limit=limit
+                )
+            )
+        ]
         self._handle_submissions(submissions)
 
 
