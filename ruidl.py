@@ -213,11 +213,12 @@ class Ruidl:
                 typer.echo(traceback.format_exc())
 
     def _handle_submissions(self, submissions):
+        num_threads = cpu_count() if len(submissions) > cpu_count() else len(submissions)
         typer.echo(
-            f'Processing {len(submissions)} submissions with {cpu_count()} worker thread(s).'
+            f'Processing {len(submissions)} submissions with {num_threads} worker thread(s).'
         )
 
-        thread_pool = ThreadPool(cpu_count())
+        thread_pool = ThreadPool(num_threads)
 
         start_file_num = len(os.listdir(self._base_path))
         start = time.time()
