@@ -17,6 +17,7 @@ from multiprocessing.pool import ThreadPool
 import exif
 import requests
 import praw
+import prawcore
 import typer
 import wordninja
 from bs4 import BeautifulSoup
@@ -232,40 +233,51 @@ class Ruidl:
             f'Downloaded {end_file_num - start_file_num} files within {int(end - start)} seconds.'
         )
 
-        if end_file_num == 0:
+        self._clean_empty_dir()
+
+    def _clean_empty_dir(self):
+        if len(os.listdir(self._base_path)) == 0:
             os.rmdir(self._base_path)
 
     def redditor(self, limit):
         '''
         Download content from a redditor
         '''
-        redd = self._api.redditor(self._name)
-        typer.echo('Retrieving submission list.')
-        submissions = [
-            submission for submission in redd.submissions.new(limit=limit)
-        ]
+        try:
+            redd = self._api.redditor(self._name)
+            typer.echo('Retrieving submission list.')
+            submissions = [
+                submission for submission in redd.submissions.new(limit=limit)
+            ]
 
-        self._handle_submissions(submissions)
+            self._handle_submissions(submissions)
+        except prawcore.exceptions.NotFound:
+            typer.echo(f'Could not find redditor {self._name}.')
+            self._clean_empty_dir()
 
     def subreddit(self, search, limit):
         '''
         Download content from a subreddit.
         '''
-        sub = self._api.subreddit(self._name)
-        typer.echo('Retrieving submission list.')
-        submissions = [
-            submission for submission in
-            (
-                sub.search(
-                    search,
-                    sort='new',
-                    limit=limit
-                ) if search else sub.new(
-                    limit=limit
+        try:
+            sub = self._api.subreddit(self._name)
+            typer.echo('Retrieving submission list.')
+            submissions = [
+                submission for submission in
+                (
+                    sub.search(
+                        search,
+                        sort='new',
+                        limit=limit
+                    ) if search else sub.new(
+                        limit=limit
+                    )
                 )
-            )
-        ]
-        self._handle_submissions(submissions)
+            ]
+            self._handle_submissions(submissions)
+        except prawcore.exceptions.Redirect:
+            typer.echo(f'Could not find subreddit {self._name}.')
+            self._clean_empty_dir()
 
 
 @APP.command()
