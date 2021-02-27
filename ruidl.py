@@ -215,23 +215,28 @@ class Ruidl:
 
     def _handle_submissions(self, submissions):
         num_threads = cpu_count() if len(submissions) > cpu_count() else len(submissions)
-        typer.echo(
-            f'Processing {len(submissions)} submissions with {num_threads} worker thread(s).'
-        )
 
-        thread_pool = ThreadPool(num_threads)
+        if num_threads:
+            typer.echo(
+                f'Processing {len(submissions)} submissions with {num_threads} worker thread(s).'
+            )
 
-        start_file_num = len(os.listdir(self._base_path))
-        start = time.time()
-        thread_pool.map_async(self._process_submission, submissions)
-        thread_pool.close()
-        thread_pool.join()
-        end = time.time()
-        end_file_num = len(os.listdir(self._base_path))
+            thread_pool = ThreadPool(num_threads)
 
-        typer.echo(
-            f'Downloaded {end_file_num - start_file_num} files within {int(end - start)} seconds.'
-        )
+            start_file_num = len(os.listdir(self._base_path))
+            start = time.time()
+            thread_pool.map_async(self._process_submission, submissions)
+            thread_pool.close()
+            thread_pool.join()
+            end = time.time()
+            end_file_num = len(os.listdir(self._base_path))
+
+            typer.echo(
+                f'Downloaded {end_file_num - start_file_num} '
+                f'files within {int(end - start)} seconds.'
+            )
+        else:
+            typer.echo(f'No submissions found, nothing to process.')
 
         self._clean_empty_dir()
 
