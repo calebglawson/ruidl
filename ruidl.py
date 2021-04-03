@@ -2,6 +2,7 @@
 This file contains the necessary components to download images from a subbreddit or redditor.
 '''
 
+from abc import abstractmethod
 import os
 import re
 import json
@@ -68,7 +69,7 @@ def _ninjify(url):
     return capitalized_words
 
 
-class Ruidl:
+class Ruidl(object):
     '''
     Reddit media downloader.
     '''
@@ -244,9 +245,22 @@ class Ruidl:
         if len(os.listdir(self._base_path)) == 0:
             os.rmdir(self._base_path)
 
-    def redditor(self, limit):
+    @abstractmethod
+    def get(self, limit, search):
         '''
-        Download content from a redditor
+        Process the request to Reddit.
+        '''
+        raise NotImplementedError
+
+
+class Redditor(Ruidl):
+    '''
+    A Redditor is a Reddit User.
+    '''
+
+    def get(self, limit, search):
+        '''
+        Download content
         '''
         try:
             redd = self._api.redditor(self._name)
@@ -260,9 +274,15 @@ class Ruidl:
             typer.echo(f'Could not find redditor {self._name}.')
             self._clean_empty_dir()
 
-    def subreddit(self, search, limit):
+
+class Subreddit(Ruidl):
+    '''
+    A Subreddit is a community page on Reddit.
+    '''
+
+    def get(self, limit, search):
         '''
-        Download content from a subreddit.
+        Download content
         '''
         try:
             sub = self._api.subreddit(self._name)
@@ -293,19 +313,19 @@ def redditor(
     '''
     Download from the specified user.
     '''
-    Ruidl(name).redditor(limit)
+    Redditor(name).get(limit, search=None)
 
 
 @APP.command()
 def subreddit(
         name: str,
-        search: str = typer.Option(None),
-        limit: int = typer.Option(None)
+        limit: int = typer.Option(None),
+        search: str = typer.Option(None)
 ):
     '''
     Download from the specified subreddit.
     '''
-    Ruidl(name).subreddit(search, limit)
+    Subreddit(name).get(limit, search)
 
 
 if __name__ == '__main__':
