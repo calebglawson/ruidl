@@ -11,7 +11,6 @@ Reddit Media Downloader
     "password": "***********optional",
     "download_dir": "*******optional",
     "file_size_threshold": "optional",
-    "verbose": "************optional",
 }
 ```
 3. Download media from a user.

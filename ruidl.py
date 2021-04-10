@@ -74,8 +74,9 @@ class Ruidl(object):
     Reddit media downloader.
     '''
 
-    def __init__(self, name):
+    def __init__(self, name, verbose):
         self._name = name
+        self._verbose = verbose
 
         self._config = _make_config()
         self._api = _make_api(self._config)
@@ -125,7 +126,7 @@ class Ruidl(object):
         with open(new_file_name, 'wb') as new:
             new.write(request.content)
 
-        if 'mp4' in new_file_name or 'gif' in new_file_name or 'webm' in new_file_name:
+        if any([file_type in file_name for file_type in ['mp4', 'gif', 'png', 'webm']]):
             return
 
         try:
@@ -137,7 +138,7 @@ class Ruidl(object):
             with open(new_file_name, 'wb') as new:
                 new.write(image.get_file())
         except Exception as exception:  # pylint: disable=broad-except
-            if self._config.get('verbose'):
+            if self._verbose:
                 typer.echo(
                     f'Error writing Exif data: {new_file_name} {exception}'
                 )
@@ -193,7 +194,7 @@ class Ruidl(object):
                 f'https://giant.gfycat.com/{_ninjify(submission.url)}.webm'
             ]
         else:
-            if self._config.get('verbose'):
+            if self._verbose:
                 typer.echo(
                     f'No match triggered for this URL: {submission.url} '
                     f'Permalink: https://reddit.com{submission.permalink}'
@@ -210,7 +211,7 @@ class Ruidl(object):
 
         except Exception as exception:  # pylint: disable=broad-except
             # Needed so that any exceptions in threads are loud and clear.
-            if self._config.get('verbose'):
+            if self._verbose:
                 typer.echo(exception)
                 typer.echo(traceback.format_exc())
 
@@ -308,24 +309,26 @@ class Subreddit(Ruidl):
 @APP.command()
 def redditor(
         name: str,
-        limit: int = typer.Option(None)
+        limit: int = typer.Option(None),
+        verbose: bool = typer.Option(False),
 ):
     '''
     Download from the specified user.
     '''
-    Redditor(name).get(limit, search=None)
+    Redditor(name, verbose).get(limit, search=None)
 
 
 @APP.command()
 def subreddit(
         name: str,
         limit: int = typer.Option(None),
-        search: str = typer.Option(None)
+        search: str = typer.Option(None),
+        verbose: bool = typer.Option(False),
 ):
     '''
     Download from the specified subreddit.
     '''
-    Subreddit(name).get(limit, search)
+    Subreddit(name, verbose).get(limit, search)
 
 
 if __name__ == '__main__':
