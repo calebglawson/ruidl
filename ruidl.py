@@ -223,7 +223,9 @@ class Ruidl(object):
         num_threads = cpu_count() if len(submissions) > cpu_count() else len(submissions)
 
         if num_threads:
-            Path(f'{self._base_path}/{self._name}.crumb').touch()
+            if any(character in self._name for character in ['-', '_']):
+                # We only place crumbs when they're needed.
+                Path(f'{self._base_path}/{self._name}.crumb').touch()
 
             typer.echo(
                 f'Processing {len(submissions)} submissions with {num_threads} worker thread(s).'
