@@ -74,13 +74,16 @@ class Ruidl(object):
     Reddit media downloader.
     '''
 
-    def __init__(self, name, verbose):
+    def __init__(self, name, download_directory, verbose):
         self._name = name
         self._verbose = verbose
 
         self._config = _make_config()
         self._api = _make_api(self._config)
-        self._base_path = f'{self._config.get("download_dir", "./")}{self._name.replace("_", "-")}'
+        dl_dir = download_directory if download_directory else self._config.get(
+            "download_dir", "./"
+        )
+        self._base_path = f'{dl_dir}{self._name.replace("_", "-")}'
 
         if not os.path.exists(self._base_path):
             os.makedirs(self._base_path)
@@ -310,12 +313,13 @@ class Subreddit(Ruidl):
 def redditor(
         name: str,
         limit: int = typer.Option(None),
+        download_directory: str = typer.Option(None),
         verbose: bool = typer.Option(False),
 ):
     '''
     Download from the specified user.
     '''
-    Redditor(name, verbose).get(limit, search=None)
+    Redditor(name, download_directory, verbose).get(limit, search=None)
 
 
 @APP.command()
@@ -323,12 +327,13 @@ def subreddit(
         name: str,
         limit: int = typer.Option(None),
         search: str = typer.Option(None),
+        download_directory: str = typer.Option(None),
         verbose: bool = typer.Option(False),
 ):
     '''
     Download from the specified subreddit.
     '''
-    Subreddit(name, verbose).get(limit, search)
+    Subreddit(name, download_directory, verbose).get(limit, search)
 
 
 if __name__ == '__main__':
