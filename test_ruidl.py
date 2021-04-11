@@ -1,5 +1,9 @@
-from pytest import mark
+'''
+Test suite for Ruidl.
+'''
+
 from collections import namedtuple
+from pytest import mark
 
 from ruidl import Redditor
 
@@ -27,6 +31,9 @@ Submission = namedtuple('Submission', ['url', "permalink"])
     )
 ])
 def test_get_file_urls(submission, expected_urls):
+    '''
+    Testing URL extraction from Reddit submissions.
+    '''
 
     redditor = Redditor(name="test", verbose=True)
 
