@@ -3,6 +3,7 @@ This file is intended for a sequential bulk update of either Redditors or Subred
 contained within a directory consisting of a single type.
 '''
 
+from glob import glob
 from itertools import product
 from pathlib import Path
 from os import listdir
@@ -13,14 +14,19 @@ from ruidl import Redditor, Subreddit
 APP = typer.Typer()
 
 
-def _name_permutator(name):
+def _name_permutator(name, download_directory):
     '''
-    Underscores had to be escaped in folder names, so we enumerate the possibilities.
-    Maybe eliminate this with cookie crumbs later? :'(
+    Underscores had to be escaped in folder names,
+    so we enumerate the possibilities if we can't find the true name.
     '''
+
     if '-' not in name:
         # Nothing to do
         return [name]
+
+    crumbs = glob(f'{download_directory}/{name}/*.crumb')
+    if crumbs:
+        return [Path(crumb).stem for crumb in crumbs]
 
     permutated_names = []
     permutations = product("-_", repeat=name.count('-'))
@@ -50,7 +56,7 @@ def _update(kind, download_directory, limit, verbose, search=None):
     ]
 
     for name in directories:
-        for permutated_name in _name_permutator(name):
+        for permutated_name in _name_permutator(name, download_directory):
             try:
                 typer.echo(f'\n{permutated_name}')
                 kind(

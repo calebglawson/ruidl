@@ -35,7 +35,7 @@ def test_get_file_urls(submission, expected_urls):
     Testing URL extraction from Reddit submissions.
     '''
 
-    redditor = Redditor(name="test", verbose=True)
+    redditor = Redditor(name="test", download_directory="", verbose=True)
 
     result = redditor._get_file_urls(  # pylint: disable=protected-access
         submission

@@ -12,6 +12,7 @@ import sys
 import time
 import traceback
 from glob import glob
+from pathlib import Path
 from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
 
@@ -80,7 +81,7 @@ class Ruidl(object):
 
         self._config = _make_config()
         self._api = _make_api(self._config)
-        dl_dir = download_directory if download_directory else self._config.get(
+        dl_dir = f'{download_directory}/' if download_directory else self._config.get(
             "download_dir", "./"
         )
         self._base_path = f'{dl_dir}{self._name.replace("_", "-")}'
@@ -222,6 +223,8 @@ class Ruidl(object):
         num_threads = cpu_count() if len(submissions) > cpu_count() else len(submissions)
 
         if num_threads:
+            Path(f'{self._base_path}/{self._name}.crumb').touch()
+
             typer.echo(
                 f'Processing {len(submissions)} submissions with {num_threads} worker thread(s).'
             )
