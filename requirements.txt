@@ -3,3 +3,5 @@ exif
 requests
 praw
 typer
+pytest
+wordninja

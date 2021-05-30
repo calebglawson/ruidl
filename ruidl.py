@@ -106,7 +106,7 @@ class Ruidl(object):
         del existing_files
 
         wordninja.DEFAULT_LANGUAGE_MODEL = wordninja.LanguageModel(
-            '.\\wordninja_words.txt.gz'
+            Path('./wordninja_words.txt.gz')
         )
 
     def _download_file(self, file_url, submission):
