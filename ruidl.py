@@ -78,13 +78,14 @@ class Ruidl(object):
     def __init__(self, name, download_directory, verbose):
         self._name = name
         self._verbose = verbose
+        self._type = getattr(self, '_type')
 
         self._config = _make_config()
         self._api = _make_api(self._config)
         dl_dir = f'{download_directory}/' if download_directory else self._config.get(
             "download_dir", "./"
         )
-        self._base_path = f'{dl_dir}{self._name.replace("_", "-")}'
+        self._base_path = f'{dl_dir}{self._type}{self._name.replace("_", "-")}'
 
         if not os.path.exists(self._base_path):
             os.makedirs(self._base_path)
@@ -95,6 +96,9 @@ class Ruidl(object):
             '.gif',
             '.mp4',
             '.webm'
+        ]
+        self._invalid_filetypes = [
+            '.gifv'
         ]
         existing_files = []
         for file_type in self._filetypes:
@@ -178,6 +182,8 @@ class Ruidl(object):
                 f'https://i.imgur.com/{image["hash"]}{image["ext"]}'
                 for image in
                 response['data']['images']
+                # Exclude gifv
+                if image["ext"] not in self._invalid_filetypes
             ]
         elif 'imgur.com/' in submission.url:
             # Single imgur image.
@@ -246,7 +252,7 @@ class Ruidl(object):
                 f'files within {int(end - start)} seconds.'
             )
         else:
-            typer.echo(f'No submissions found, nothing to process.')
+            typer.echo('No submissions found, nothing to process.')
 
         self._clean_empty_dir()
 
@@ -266,6 +272,10 @@ class Redditor(Ruidl):
     '''
     A Redditor is a Reddit User.
     '''
+
+    def __init__(self, name, download_directory, verbose):
+        self._type = 'redditor/'
+        super().__init__(name, download_directory, verbose)
 
     def get(self, limit, search):
         '''
@@ -288,6 +298,10 @@ class Subreddit(Ruidl):
     '''
     A Subreddit is a community page on Reddit.
     '''
+
+    def __init__(self, name, download_directory, verbose):
+        self._type = 'subreddit/'
+        super().__init__(name, download_directory, verbose)
 
     def get(self, limit, search):
         '''
