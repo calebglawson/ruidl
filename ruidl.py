@@ -1,6 +1,6 @@
-'''
+"""
 This file contains the necessary components to download images from a subbreddit or redditor.
-'''
+"""
 
 from abc import abstractmethod
 import os
@@ -34,17 +34,17 @@ USER_AGENT_HEADER = {
 
 
 def _make_config():
-    '''
+    """
     Load the config from a file.
-    '''
+    """
     config = open('./config.json')
     return json.load(config)
 
 
 def _make_api(config):
-    '''
+    """
     Make a PRAW api object.
-    '''
+    """
 
     api = praw.Reddit(
         client_id=config.get('client_id'),
@@ -71,9 +71,9 @@ def _ninjify(url):
 
 
 class Ruidl(object):
-    '''
+    """
     Reddit media downloader.
-    '''
+    """
 
     def __init__(self, name, download_directory, verbose):
         self._name = name
@@ -233,26 +233,32 @@ class Ruidl(object):
                 # We only place crumbs when they're needed.
                 Path(f'{self._base_path}/{self._name}.crumb').touch()
 
-            typer.echo(
-                f'Processing {len(submissions)} submissions with {num_threads} worker thread(s).'
-            )
-
+            typer.echo(f'Initializing pool with {num_threads} worker thread(s)')
             thread_pool = ThreadPool(num_threads)
 
             start_file_num = len(os.listdir(self._base_path))
             start = time.time()
-            thread_pool.map_async(self._process_submission, submissions)
+            with typer.progressbar(
+                    length=len(submissions),
+                    label="Processing submissions",
+                    show_pos=True,
+                    show_eta=True,
+                    show_percent=True
+            ) as progress:
+                for submission in submissions:
+                    thread_pool.apply_async(
+                        self._process_submission,
+                        args=(submission,),
+                        callback=lambda x: progress.update(1)
+                    )
             thread_pool.close()
             thread_pool.join()
             end = time.time()
             end_file_num = len(os.listdir(self._base_path))
 
-            typer.echo(
-                f'Downloaded {end_file_num - start_file_num} '
-                f'files within {int(end - start)} seconds.'
-            )
+            typer.echo(f'\nDownloaded {end_file_num - start_file_num} files within {int(end - start)} seconds')
         else:
-            typer.echo('No submissions found, nothing to process.')
+            typer.echo('No submissions found, nothing to process')
 
         self._clean_empty_dir()
 
@@ -262,54 +268,54 @@ class Ruidl(object):
 
     @abstractmethod
     def get(self, limit, search):
-        '''
+        """
         Process the request to Reddit.
-        '''
+        """
         raise NotImplementedError
 
 
 class Redditor(Ruidl):
-    '''
+    """
     A Redditor is a Reddit User.
-    '''
+    """
 
     def __init__(self, name, download_directory, verbose):
-        self._type = 'redditor/'
+        self._type = '/redditor/'
         super().__init__(name, download_directory, verbose)
 
     def get(self, limit, search):
-        '''
+        """
         Download content
-        '''
+        """
         try:
             redd = self._api.redditor(self._name)
-            typer.echo('Retrieving submission list.')
+            typer.echo('Retrieving submission list')
             submissions = [
                 submission for submission in redd.submissions.new(limit=limit)
             ]
 
             self._handle_submissions(submissions)
         except prawcore.exceptions.NotFound:
-            typer.echo(f'Could not find redditor {self._name}.')
+            typer.echo(f'Could not find redditor {self._name}')
             self._clean_empty_dir()
 
 
 class Subreddit(Ruidl):
-    '''
+    """
     A Subreddit is a community page on Reddit.
-    '''
+    """
 
     def __init__(self, name, download_directory, verbose):
-        self._type = 'subreddit/'
+        self._type = '/subreddit/'
         super().__init__(name, download_directory, verbose)
 
     def get(self, limit, search):
-        '''
+        """
         Download content
-        '''
+        """
         try:
             sub = self._api.subreddit(self._name)
-            typer.echo('Retrieving submission list.')
+            typer.echo('Retrieving submission list')
             submissions = [
                 submission for submission in
                 (
@@ -324,7 +330,7 @@ class Subreddit(Ruidl):
             ]
             self._handle_submissions(submissions)
         except prawcore.exceptions.Redirect:
-            typer.echo(f'Could not find subreddit {self._name}.')
+            typer.echo(f'Could not find subreddit {self._name}')
             self._clean_empty_dir()
 
 
@@ -335,9 +341,9 @@ def redditor(
         download_directory: str = typer.Option(None),
         verbose: bool = typer.Option(False),
 ):
-    '''
+    """
     Download from the specified user.
-    '''
+    """
     Redditor(name, download_directory, verbose).get(limit, search=None)
 
 
@@ -349,9 +355,9 @@ def subreddit(
         download_directory: str = typer.Option(None),
         verbose: bool = typer.Option(False),
 ):
-    '''
+    """
     Download from the specified subreddit.
-    '''
+    """
     Subreddit(name, download_directory, verbose).get(limit, search)
 
 
