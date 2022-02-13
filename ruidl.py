@@ -242,7 +242,6 @@ class Ruidl(object):
                     length=len(submissions),
                     label="Processing submissions",
                     show_pos=True,
-                    show_eta=True,
                     show_percent=True
             ) as progress:
                 for submission in submissions:
