@@ -242,7 +242,8 @@ class Ruidl(object):
                     length=len(submissions),
                     label="Processing submissions",
                     show_pos=True,
-                    show_percent=True
+                    show_percent=True,
+                    show_eta=False,
             ) as progress:
                 for submission in submissions:
                     thread_pool.apply_async(
