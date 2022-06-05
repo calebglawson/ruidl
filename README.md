@@ -1,5 +1,5 @@
 # PROJECT ARCHIVED
-Just use [BDFR](https://github.com/aliparlakci/bulk-downloader-for-reddit)
+Just use [BDFR](https://github.com/aliparlakci/bulk-downloader-for-reddit).
 
 ## ruidl
 Reddit Media Downloader
