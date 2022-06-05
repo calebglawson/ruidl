@@ -1,4 +1,7 @@
-# ruidl
+# PROJECT ARCHIVED
+Just use [BDFR](https://github.com/aliparlakci/bulk-downloader-for-reddit)
+
+## ruidl
 Reddit Media Downloader
 
 1. Obtain a client ID and secret from Reddit by [creating a script type app](https://github.com/reddit-archive/reddit/wiki/OAuth2-Quick-Start-Example).
